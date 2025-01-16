@@ -1,137 +1,339 @@
 package application;
 
+import java.io.IOException;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ResourceBundle;
 
+import connecter.db_connection;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
+import javafx.stage.Stage;
 
-public class SampleController implements Initializable{
+public class SampleController implements Initializable {
 
+    // Teacher Management
     @FXML
-    private TextField Tnumber;
-
-    @FXML
-    private Button btnAdd;
-
-    @FXML
-    private Button btnAdd2;
-
-    @FXML
-    private Button btnMod;
-
-    @FXML
-    private Button btnReq;
-
-    @FXML
-    private Button btnSearch;
-
-    @FXML
-    private Button btndel;
-
-    @FXML
-    private TableColumn<?, ?> classC;
-
-    @FXML
-    private ChoiceBox<String> classCB;
-    
-    private String[] classes= {"1st grade", "2nd grade", "3rd grade", "4th grade", "5th grade"};
-
-    @FXML
-    private TextField contact;
-
-    @FXML
-    private TableColumn<?, ?> contactC;
-
-    @FXML
-    private TableColumn<?, ?> dayC;
-    
-    @FXML
-    private ChoiceBox<String> dayCB;
-    
-    private String[] days= {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-
-
-    @FXML
-    private TableColumn<?, ?> hourC;
-
-    @FXML
-    private ChoiceBox<String> hourCB;
-    
-    private String[] hours= {"1st period", "2nd period", "3rd period", "4th period", "5th period", "6th period"};
+    private TextField number;
 
     @FXML
     private TextField name;
 
     @FXML
-    private TableColumn<?, ?> nameC;
+    private TextField contact;
 
     @FXML
-    private TextField number;
+    private Button btnAdd;
 
     @FXML
-    private TableColumn<?, ?> numberC;
+    private Button btnMod;
+
+    @FXML
+    private Button btndel;
+
+    @FXML
+    private Button btnSearch;
+
+    @FXML
+    private TableView<ObservableList<String>> table1;
+
+    @FXML
+    private TableColumn<ObservableList<String>, String> numberC;
+
+    @FXML
+    private TableColumn<ObservableList<String>, String> nameC;
+
+    @FXML
+    private TableColumn<ObservableList<String>, String> contactC;
+
+    private ObservableList<ObservableList<String>> teacherData;
+
+    // Course Management
+    @FXML
+    private TableView<ObservableList<String>> table2;
+    
+    @FXML
+    private TableColumn<ObservableList<String>, String> classC;
+    
+    @FXML
+    private TableColumn<ObservableList<String>, String> subjectC;
+    
+    @FXML
+    private TableColumn<ObservableList<String>, String> dayC;
+    
+    @FXML
+    private TableColumn<ObservableList<String>, String> hourC;
+    
+    private ObservableList<ObservableList<String>> courseData;
+    
+    
+    
+    
+    @FXML
+    private ChoiceBox<String> classCB;
+    
+
+    @FXML
+    private ChoiceBox<String> dayCB;
+
+    @FXML
+    private ChoiceBox<String> hourCB;
 
     @FXML
     private TextField subject;
 
     @FXML
-    private TableColumn<?, ?> subjectC;
+    private TextField Tnumber;
 
     @FXML
-    private TableView<?> table1;
+    private Button btnAdd2;
 
     @FXML
-    private TableView<?> table2;
+    private Button btnReq;
 
-    @FXML
-    private TableColumn<?, ?> teacherC;
+    private final String[] classes = {"1st grade", "2nd grade", "3rd grade", "4th grade", "5th grade"};
+    private final String[] days = {"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+    private final String[] hours = {"08:00-09:00", "09:00-10:00", "10:00-11:00", "11:00-12:00", "12:00-13:00", "13:00-14:00"};
+
+    private final db_connection db = new db_connection();
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        // Initialize ChoiceBoxes
+        classCB.getItems().addAll(classes);
+        dayCB.getItems().addAll(days);
+        hourCB.getItems().addAll(hours);
+        initializeCourseTable();
+        loadCourses();
+
+        // Initialize teacher table
+        initializeTeacherTable();
+        loadTeachers();
+    }
+
+    private void initializeTeacherTable() {
+        numberC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(0)));
+        nameC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(1)));
+        contactC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(2)));
+
+        teacherData = FXCollections.observableArrayList();
+        table1.setItems(teacherData);
+    }
+    private void initializeCourseTable() {
+        classC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(0)));
+        subjectC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(1)));
+        dayC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(2)));
+        hourC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(3)));
+
+        courseData = FXCollections.observableArrayList();
+        table2.setItems(courseData);
+    }
     
+
+    private void loadTeachers() {
+        teacherData.clear();
+        String query = "SELECT employee_number, name, contact FROM teachers";
+        try (Connection conn = db.connect();
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                ObservableList<String> row = FXCollections.observableArrayList();
+                row.add(rs.getString("employee_number"));
+                row.add(rs.getString("name"));
+                row.add(rs.getString("contact"));
+                teacherData.add(row);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    private void loadCourses() {
+        courseData.clear();
+        String query = "SELECT c.name AS class, s.subject, s.day_of_week, s.start_time, s.end_time " +
+                       "FROM sessions s " +
+                       "JOIN classes c ON s.class_id = c.id";
+        try (Connection conn = db.connect();
+             PreparedStatement stmt = conn.prepareStatement(query);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                ObservableList<String> row = FXCollections.observableArrayList();
+                row.add(rs.getString("class"));
+                row.add(rs.getString("subject"));
+                row.add(rs.getString("day_of_week"));
+                row.add(rs.getString("start_time"));
+                row.add(rs.getString("end_time"));
+                courseData.add(row);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
     @FXML
     void Add(ActionEvent event) {
+        String teacherNumber = number.getText();
+        String teacherName = name.getText();
+        String teacherContact = contact.getText();
 
-    }
+        if (teacherNumber.isEmpty() || teacherName.isEmpty() || teacherContact.isEmpty()) {
+            showAlert("Error", "All fields are required!");
+            return;
+        }
 
-    @FXML
-    void Add2(ActionEvent event) {
-
-    }
-
-    @FXML
-    void Delete(ActionEvent event) {
-
+        String query = "INSERT INTO teachers (employee_number, name, contact) VALUES (?, ?, ?)";
+        try (Connection conn = db.connect();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, teacherNumber);
+            stmt.setString(2, teacherName);
+            stmt.setString(3, teacherContact);
+            stmt.executeUpdate();
+            loadTeachers();
+            showAlert("Success", "Teacher added successfully!");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @FXML
     void Modify(ActionEvent event) {
+        String teacherNumber = number.getText();
+        String teacherName = name.getText();
+        String teacherContact = contact.getText();
 
+        if (teacherNumber.isEmpty() || teacherName.isEmpty() || teacherContact.isEmpty()) {
+            showAlert("Error", "All fields are required!");
+            return;
+        }
+
+        String query = "UPDATE teachers SET name = ?, contact = ? WHERE employee_number = ?";
+        try (Connection conn = db.connect();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, teacherName);
+            stmt.setString(2, teacherContact);
+            stmt.setString(3, teacherNumber);
+            stmt.executeUpdate();
+            loadTeachers();
+            showAlert("Success", "Teacher modified successfully!");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @FXML
-    void Requests(ActionEvent event) {
+    void Delete(ActionEvent event) {
+        String teacherNumber = number.getText();
 
+        if (teacherNumber.isEmpty()) {
+            showAlert("Error", "Employee number is required!");
+            return;
+        }
+
+        String query = "DELETE FROM teachers WHERE employee_number = ?";
+        try (Connection conn = db.connect();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, teacherNumber);
+            stmt.executeUpdate();
+            loadTeachers();
+            showAlert("Success", "Teacher deleted successfully!");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     @FXML
     void Search(ActionEvent event) {
+        String teacherName = name.getText();
 
+        if (teacherName.isEmpty()) {
+            showAlert("Error", "Teacher name is required!");
+            return;
+        }
+
+        String query = "SELECT employee_number, contact FROM teachers WHERE name = ?";
+        try (Connection conn = db.connect();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, teacherName);
+            ResultSet rs = stmt.executeQuery();
+
+            if (rs.next()) {
+                number.setText(rs.getString("employee_number"));
+                contact.setText(rs.getString("contact"));
+                showAlert("Success", "Teacher found!");
+            } else {
+                showAlert("Info", "Teacher not found!");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
-	@Override
-	public void initialize(URL arg0, ResourceBundle arg1) {
-		// TODO Auto-generated method stub
-		classCB.getItems().addAll(classes);
-		dayCB.getItems().addAll(days);
-		hourCB.getItems().addAll(hours);
-	}
+    @FXML
+    void Add2(ActionEvent event) {
+        String selectedClass = classCB.getValue();
+        String selectedDay = dayCB.getValue();
+        String selectedHour = hourCB.getValue();
+        String courseSubject = subject.getText();
+        String teacherNumber = Tnumber.getText();
 
+        if (selectedClass == null || selectedDay == null || selectedHour == null || courseSubject.isEmpty() || teacherNumber.isEmpty()) {
+            showAlert("Error", "All fields are required!");
+            return;
+        }
+
+        String[] timePeriod = selectedHour.split("-");
+        String query = "INSERT INTO sessions (class_id, subject, day_of_week, start_time, end_time, teacher_id) " +
+                "VALUES ((SELECT id FROM classes WHERE name = ?), ?, ?, ?, ?, ?)";
+        try (Connection conn = db.connect();
+             PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, selectedClass);
+            stmt.setString(2, courseSubject);
+            stmt.setString(3, selectedDay);
+            stmt.setString(4, timePeriod[0]); // Start time
+            stmt.setString(5, timePeriod[1]); // End time
+            stmt.setString(6, teacherNumber);
+            stmt.executeUpdate();
+            showAlert("Success", "Course added successfully!");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    void Requests(ActionEvent event) {
+        try {
+            BorderPane root = FXMLLoader.load(getClass().getResource("page2.fxml"));
+            Stage stage = (Stage) btnReq.getScene().getWindow();
+            stage.setScene(new Scene(root));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void showAlert(String title, String message) {
+        Alert alert = new Alert(AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
 }

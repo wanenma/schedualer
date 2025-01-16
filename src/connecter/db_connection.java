@@ -8,9 +8,10 @@ import java.util.logging.Logger;
 
 public class db_connection {
 
+   
     public Connection connect() {
         try {
-            String url = "jdbc:mysql://localhost:3306/schedule_management_db";
+            String url = "jdbc:mysql://localhost:3306/schedule_db";
             String user = "root";
             String password = "root";
 
@@ -21,5 +22,16 @@ public class db_connection {
             Logger.getLogger(db_connection.class.getName()).log(Level.SEVERE, null, e);
         }
         return null;
+    }
+
+    
+    public void closeConnection(Connection conn) {
+        try {
+            if (conn != null && !conn.isClosed()) {
+                conn.close();
+            }
+        } catch (SQLException e) {
+            Logger.getLogger(db_connection.class.getName()).log(Level.SEVERE, null, e);
+        }
     }
 }
