@@ -11,8 +11,7 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.text.Font?>
 
-
-<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="589.0" prefWidth="975.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" >
+<BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="589.0" prefWidth="975.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="application.page2Controller">
    <center>
       <AnchorPane prefHeight="589.0" prefWidth="975.0" BorderPane.alignment="CENTER">
          <children>
@@ -23,10 +22,10 @@
                         <Font name="System Bold" size="19.0" />
                      </font>
                   </Label>
-                  <ChoiceBox fx:id="classCB" layoutX="33.0" layoutY="77.0" prefWidth="150.0" />
+                  <ChoiceBox fx:id="classCB2" layoutX="76.0" layoutY="484.0" prefWidth="150.0" />
                   <Label layoutX="33.0" layoutY="60.0" text="Class" textFill="WHITE" />
                   <Label layoutX="211.0" layoutY="60.0" text="Subject" textFill="WHITE" />
-                  <TextField layoutX="211.0" layoutY="77.0" onAction="#subject" />
+                  <TextField fx:id="subject" layoutX="211.0" layoutY="77.0" />
                   <TableView fx:id="table" layoutX="33.0" layoutY="136.0" prefHeight="247.0" prefWidth="864.0">
                     <columns>
                       <TableColumn fx:id="idC" prefWidth="75.0" text="id" />
@@ -47,8 +46,9 @@
                      </font>
                   </Label>
                   <Label layoutX="32.0" layoutY="488.0" text="Class" textFill="WHITE" />
-                  <ChoiceBox fx:id="classCB2" layoutX="76.0" layoutY="484.0" prefWidth="150.0" />
+                  <ChoiceBox fx:id="classCB" layoutX="32.0" layoutY="77.0" prefWidth="150.0" />
                   <Button fx:id="search" layoutX="244.0" layoutY="484.0" mnemonicParsing="false" onAction="#Search" text="Search" />
+                  <Button fx:id="search1" layoutX="387.0" layoutY="77.0" mnemonicParsing="false" onAction="#search1" text="Search" />
                </children>
             </Pane>
          </children>

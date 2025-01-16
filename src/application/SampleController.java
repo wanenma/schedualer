@@ -67,27 +67,26 @@ public class SampleController implements Initializable {
     // Course Management
     @FXML
     private TableView<ObservableList<String>> table2;
-    
+
     @FXML
     private TableColumn<ObservableList<String>, String> classC;
-    
+
     @FXML
     private TableColumn<ObservableList<String>, String> subjectC;
-    
+
     @FXML
     private TableColumn<ObservableList<String>, String> dayC;
-    
+
     @FXML
-    private TableColumn<ObservableList<String>, String> hourC;
-    
+    private TableColumn<ObservableList<String>, String> timeC;
+
+    @FXML
+    private TableColumn<ObservableList<String>, String> teacherC;
+
     private ObservableList<ObservableList<String>> courseData;
-    
-    
-    
-    
+
     @FXML
     private ChoiceBox<String> classCB;
-    
 
     @FXML
     private ChoiceBox<String> dayCB;
@@ -135,16 +134,17 @@ public class SampleController implements Initializable {
         teacherData = FXCollections.observableArrayList();
         table1.setItems(teacherData);
     }
+
     private void initializeCourseTable() {
         classC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(0)));
         subjectC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(1)));
         dayC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(2)));
-        hourC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(3)));
+        timeC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(3)));
+        teacherC.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().get(4)));
 
         courseData = FXCollections.observableArrayList();
         table2.setItems(courseData);
     }
-    
 
     private void loadTeachers() {
         teacherData.clear();
@@ -165,11 +165,13 @@ public class SampleController implements Initializable {
             e.printStackTrace();
         }
     }
+
     private void loadCourses() {
         courseData.clear();
-        String query = "SELECT c.name AS class, s.subject, s.day_of_week, s.start_time, s.end_time " +
+        String query = "SELECT c.name AS class, s.subject, s.day_of_week, s.time, t.name AS teacher " +
                        "FROM sessions s " +
-                       "JOIN classes c ON s.class_id = c.id";
+                       "JOIN classes c ON s.class_id = c.id " +
+                       "JOIN teachers t ON s.teacher_id = t.id";
         try (Connection conn = db.connect();
              PreparedStatement stmt = conn.prepareStatement(query);
              ResultSet rs = stmt.executeQuery()) {
@@ -179,8 +181,8 @@ public class SampleController implements Initializable {
                 row.add(rs.getString("class"));
                 row.add(rs.getString("subject"));
                 row.add(rs.getString("day_of_week"));
-                row.add(rs.getString("start_time"));
-                row.add(rs.getString("end_time"));
+                row.add(rs.getString("time"));
+                row.add(rs.getString("teacher"));
                 courseData.add(row);
             }
 
@@ -259,7 +261,6 @@ public class SampleController implements Initializable {
             e.printStackTrace();
         }
     }
-
     @FXML
     void Search(ActionEvent event) {
         String teacherName = name.getText();
@@ -300,35 +301,49 @@ public class SampleController implements Initializable {
             return;
         }
 
-        String[] timePeriod = selectedHour.split("-");
-        String query = "INSERT INTO sessions (class_id, subject, day_of_week, start_time, end_time, teacher_id) " +
-                "VALUES ((SELECT id FROM classes WHERE name = ?), ?, ?, ?, ?, ?)";
+        // Add new class to the classes table if it doesn't exist
+        String addClassQuery = "INSERT INTO classes (name) VALUES (?) ON DUPLICATE KEY UPDATE name = name";
         try (Connection conn = db.connect();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setString(1, selectedClass);
-            stmt.setString(2, courseSubject);
-            stmt.setString(3, selectedDay);
-            stmt.setString(4, timePeriod[0]); // Start time
-            stmt.setString(5, timePeriod[1]); // End time
-            stmt.setString(6, teacherNumber);
-            stmt.executeUpdate();
-            showAlert("Success", "Course added successfully!");
+             PreparedStatement addClassStmt = conn.prepareStatement(addClassQuery)) {
+            addClassStmt.setString(1, selectedClass);
+            addClassStmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
+            showAlert("Error", "Failed to add class!");
+            return;
+        }
+
+        // Add new session to the sessions table
+        String addSessionQuery = "INSERT INTO sessions (class_id, subject, day_of_week, time, teacher_id) " +
+                "VALUES ((SELECT id FROM classes WHERE name = ?), ?, ?, ?, (SELECT id FROM teachers WHERE employee_number = ?))";
+        try (Connection conn = db.connect();
+             PreparedStatement addSessionStmt = conn.prepareStatement(addSessionQuery)) {
+            addSessionStmt.setString(1, selectedClass);
+            addSessionStmt.setString(2, courseSubject);
+            addSessionStmt.setString(3, selectedDay);
+            addSessionStmt.setString(4, selectedHour);
+            addSessionStmt.setString(5, teacherNumber);
+            addSessionStmt.executeUpdate();
+            loadCourses();
+            showAlert("Success", "Class and course added successfully!");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showAlert("Error", "Failed to add course! " + e.getMessage());
         }
     }
 
     @FXML
     void Requests(ActionEvent event) {
         try {
-            BorderPane root = FXMLLoader.load(getClass().getResource("page2.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("page2.fxml"));
+            BorderPane root = loader.load();
             Stage stage = (Stage) btnReq.getScene().getWindow();
             stage.setScene(new Scene(root));
         } catch (IOException e) {
             e.printStackTrace();
+            showAlert("Error", "Failed to load the requests page! " + e.getMessage());
         }
     }
-
     private void showAlert(String title, String message) {
         Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle(title);
