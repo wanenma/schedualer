@@ -23,6 +23,7 @@ import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TextFormatter;
 import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 
@@ -124,6 +125,27 @@ public class SampleController implements Initializable {
         // Initialize teacher table
         initializeTeacherTable();
         loadTeachers();
+
+        // Add input validation
+        addInputValidation();
+    }
+
+    private void addInputValidation() {
+        // Number field validation
+        number.setTextFormatter(new TextFormatter<>(change -> {
+            if (change.getControlNewText().matches("\\d*")) {
+                return change;
+            }
+            return null;
+        }));
+
+        // Name field validation
+        name.setTextFormatter(new TextFormatter<>(change -> {
+            if (change.getControlNewText().matches("[a-zA-Z\\s]*")) {
+                return change;
+            }
+            return null;
+        }));
     }
 
     private void initializeTeacherTable() {
@@ -344,6 +366,7 @@ public class SampleController implements Initializable {
             showAlert("Error", "Failed to load the requests page! " + e.getMessage());
         }
     }
+
     private void showAlert(String title, String message) {
         Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle(title);

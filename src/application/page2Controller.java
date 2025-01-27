@@ -194,33 +194,7 @@ public class page2Controller implements Initializable {
         }
     }
 
-    private void loadSchedule() {
-        scheduleData.clear();
-        String query = "SELECT s.id, c.name AS class, s.day_of_week, s.subject, s.time, t.name AS teacher, t.contact " +
-                       "FROM sessions s " +
-                       "JOIN classes c ON s.class_id = c.id " +
-                       "JOIN teachers t ON s.teacher_id = t.id";
-        try (Connection conn = db.connect();
-             PreparedStatement stmt = conn.prepareStatement(query);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                ObservableList<String> row = FXCollections.observableArrayList();
-                row.add(rs.getString("id"));
-                row.add(rs.getString("class"));
-                row.add(rs.getString("day_of_week"));
-                row.add(rs.getString("subject"));
-                row.add(rs.getString("time"));
-                row.add(rs.getString("teacher"));
-                row.add(rs.getString("contact"));
-                scheduleData.add(row);
-            }
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            showAlert("Error", "Failed to load schedule! " + e.getMessage());
-        }
-    }
+   
 
     private void showAlert(String title, String message) {
         Alert alert = new Alert(AlertType.INFORMATION);
